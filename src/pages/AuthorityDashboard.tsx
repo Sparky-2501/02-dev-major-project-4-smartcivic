@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { Cell } from "recharts";
 import {
   CheckCircle, Clock, AlertTriangle, TrendingUp, Upload,
   BarChart3, MapPin, Tag
