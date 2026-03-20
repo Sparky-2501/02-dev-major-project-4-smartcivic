@@ -1,20 +1,53 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, Menu, X } from "lucide-react";
+import { Activity, Menu, X, LogIn, LogOut, User } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
-const navItems = [
+const publicItems = [
   { label: "Home", path: "/" },
   { label: "Dashboard", path: "/dashboard" },
+  { label: "Community", path: "/community" },
+  { label: "Map", path: "/map" },
+];
+
+const citizenItems = [
+  { label: "Home", path: "/" },
+  { label: "My Dashboard", path: "/citizen-dashboard" },
   { label: "Report Issue", path: "/report" },
   { label: "Community", path: "/community" },
-  { label: "Authority", path: "/authority" },
+  { label: "Map", path: "/map" },
+];
+
+const authorityItems = [
+  { label: "Home", path: "/" },
+  { label: "My Dashboard", path: "/authority-dashboard" },
+  { label: "Map", path: "/map" },
+];
+
+const adminItems = [
+  { label: "Home", path: "/" },
+  { label: "Admin", path: "/admin-dashboard" },
+  { label: "City Dashboard", path: "/dashboard" },
+  { label: "Community", path: "/community" },
   { label: "Map", path: "/map" },
 ];
 
 export function Navbar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, role, profile, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  let navItems = publicItems;
+  if (role === "citizen") navItems = citizenItems;
+  else if (role === "authority") navItems = authorityItems;
+  else if (role === "admin") navItems = adminItems;
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 backdrop-blur-xl bg-background/80">
@@ -38,9 +71,7 @@ export function Navbar() {
                   key={item.path}
                   to={item.path}
                   className={`relative px-3 py-2 text-sm rounded-lg transition-colors ${
-                    active
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground"
+                    active ? "text-primary" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {active && (
@@ -54,13 +85,29 @@ export function Navbar() {
                 </Link>
               );
             })}
+
+            <div className="ml-2 pl-2 border-l border-border/50 flex items-center gap-2">
+              {user ? (
+                <>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <User className="w-3 h-3" />
+                    {profile?.name || "User"}
+                    {role && <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-medium ml-1">{role}</span>}
+                  </span>
+                  <button onClick={handleSignOut} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </>
+              ) : (
+                <Link to="/auth" className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">
+                  <LogIn className="w-4 h-4" /> Sign In
+                </Link>
+              )}
+            </div>
           </div>
 
           {/* Mobile toggle */}
-          <button
-            className="md:hidden p-2 text-muted-foreground"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
+          <button className="md:hidden p-2 text-muted-foreground" onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
@@ -88,6 +135,20 @@ export function Navbar() {
                 {item.label}
               </Link>
             ))}
+            <div className="pt-2 border-t border-border/50">
+              {user ? (
+                <button
+                  onClick={() => { handleSignOut(); setMobileOpen(false); }}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground w-full"
+                >
+                  <LogOut className="w-4 h-4" /> Sign Out
+                </button>
+              ) : (
+                <Link to="/auth" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-primary">
+                  <LogIn className="w-4 h-4" /> Sign In
+                </Link>
+              )}
+            </div>
           </div>
         </motion.div>
       )}
