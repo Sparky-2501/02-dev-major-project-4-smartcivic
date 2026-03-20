@@ -1,26 +1,67 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { Upload, Camera, MapPin, Send, Sparkles, CheckCircle } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { categoryToDomain } from "@/lib/domainMapping";
+import { useToast } from "@/hooks/use-toast";
 
 const categories = ["Pothole", "Garbage Overflow", "Water Leakage", "Broken Streetlight", "Traffic Obstruction", "Stray Animals"];
 
 export default function ReportPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [step, setStep] = useState<"upload" | "scanning" | "detected" | "form">("upload");
   const [detectedCategory, setDetectedCategory] = useState("");
   const [confidence, setConfidence] = useState(0);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [category, setCategory] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const simulateAI = () => {
     setStep("scanning");
     setTimeout(() => {
-      const idx = Math.floor(Math.random() * 4);
       const cats = ["Pothole", "Garbage Overflow", "Water Leakage", "Broken Streetlight"];
+      const idx = Math.floor(Math.random() * cats.length);
       const conf = 88 + Math.floor(Math.random() * 10);
       setDetectedCategory(cats[idx]);
+      setCategory(cats[idx]);
       setConfidence(conf);
       setStep("detected");
       setTimeout(() => setStep("form"), 1500);
     }, 2500);
+  };
+
+  const handleSubmit = async () => {
+    if (!user || !title.trim() || !description.trim() || !location.trim()) {
+      toast({ title: "Missing fields", description: "Please fill in all fields", variant: "destructive" });
+      return;
+    }
+
+    setSubmitting(true);
+    const domain = categoryToDomain[category] || "public_infrastructure";
+
+    const { error } = await supabase.from("issues").insert({
+      title: title.trim(),
+      description: description.trim(),
+      category,
+      domain,
+      location: location.trim(),
+      created_by: user.id,
+    });
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Issue reported!", description: "Your report has been submitted successfully." });
+      navigate("/citizen-dashboard");
+    }
+    setSubmitting(false);
   };
 
   return (
@@ -31,7 +72,6 @@ export default function ReportPage() {
           <p className="text-muted-foreground mt-1">Upload a photo and our AI will detect the problem</p>
         </motion.div>
 
-        {/* Upload Area */}
         {step === "upload" && (
           <GlassCard className="p-8">
             <div
@@ -52,7 +92,6 @@ export default function ReportPage() {
           </GlassCard>
         )}
 
-        {/* Scanning Animation */}
         {step === "scanning" && (
           <GlassCard className="p-8">
             <div className="relative rounded-xl bg-secondary/50 h-64 overflow-hidden">
@@ -74,7 +113,6 @@ export default function ReportPage() {
           </GlassCard>
         )}
 
-        {/* Detection Result */}
         {step === "detected" && (
           <GlassCard className="p-8">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center">
@@ -90,10 +128,8 @@ export default function ReportPage() {
           </GlassCard>
         )}
 
-        {/* Report Form */}
         {step === "form" && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-            {/* AI Result Banner */}
             <div className="glass-card p-4 flex items-center gap-3">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5 pointer-events-none" />
               <Sparkles className="w-5 h-5 text-primary relative z-10" />
@@ -103,11 +139,22 @@ export default function ReportPage() {
             </div>
 
             <GlassCard className="p-6 space-y-5">
-              {/* Category */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Issue Title</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Brief title for the issue"
+                  className="w-full bg-secondary border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-2">Issue Category</label>
                 <select
-                  defaultValue={detectedCategory}
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
                   className="w-full bg-secondary border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   {categories.map((c) => (
@@ -116,24 +163,26 @@ export default function ReportPage() {
                 </select>
               </div>
 
-              {/* Location */}
               <div>
                 <label className="block text-sm font-medium mb-2">Location</label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-muted-foreground" />
                   <input
                     type="text"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
                     placeholder="Enter location or use GPS"
                     className="w-full bg-secondary border border-border rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
               </div>
 
-              {/* Description */}
               <div>
                 <label className="block text-sm font-medium mb-2">Description</label>
                 <textarea
                   rows={4}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe the issue in detail..."
                   className="w-full bg-secondary border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
                 />
@@ -141,10 +190,15 @@ export default function ReportPage() {
 
               <motion.button
                 whileTap={{ scale: 0.98 }}
-                className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-primary-foreground font-semibold transition-all hover:shadow-[0_0_30px_rgba(59,130,246,0.4)]"
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-primary-foreground font-semibold transition-all hover:shadow-[0_0_30px_rgba(59,130,246,0.4)] disabled:opacity-50"
               >
-                <Send className="w-5 h-5" />
-                Submit Report
+                {submitting ? (
+                  <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <><Send className="w-5 h-5" /> Submit Report</>
+                )}
               </motion.button>
             </GlassCard>
           </motion.div>
