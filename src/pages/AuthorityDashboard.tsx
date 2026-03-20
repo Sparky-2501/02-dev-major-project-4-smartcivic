@@ -109,8 +109,7 @@ export default function AuthorityDashboard() {
                 <Tooltip contentStyle={{ background: "rgba(13,17,23,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px" }} />
                 <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                   {chartData.map((_, i) => (
-                    <BarChart.prototype.constructor === undefined ? null :
-                    <rect key={i} fill={chartColors[i]} />
+                    <Cell key={i} fill={chartColors[i]} />
                   ))}
                 </Bar>
               </BarChart>
