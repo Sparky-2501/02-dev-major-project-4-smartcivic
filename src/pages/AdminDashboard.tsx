@@ -6,13 +6,15 @@ import {
   Shield, Activity, ArrowRight, TrendingUp
 } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
-import { supabase } from "@/integrations/supabase/client";
 import { domainLabels, statusLabels } from "@/lib/domainMapping";
 import type { Tables } from "@/integrations/supabase/types";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
   PieChart, Pie
 } from "recharts";
+
+
+import { getIssues } from "@/lib/api";
 
 type Issue = Tables<"issues">;
 type UserRole = Tables<"user_roles">;
@@ -24,20 +26,15 @@ export default function AdminDashboard() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const load = async () => {
-      const [issuesRes, rolesRes, profilesRes] = await Promise.all([
-        supabase.from("issues").select("*").order("created_at", { ascending: false }),
-        supabase.from("user_roles").select("*"),
-        supabase.from("profiles").select("*"),
-      ]);
-      setIssues(issuesRes.data ?? []);
-      setUsers(rolesRes.data ?? []);
-      setProfiles(profilesRes.data ?? []);
-      setLoading(false);
-    };
-    load();
-  }, []);
+
+useEffect(() => {
+  const load = async () => {
+    const issuesData = await getIssues();
+    setIssues(issuesData || []);
+    setLoading(false);
+  };
+  load();
+}, []);
 
   const reported = issues.filter(i => i.status === "reported").length;
   const inProgress = issues.filter(i => i.status === "in_progress").length;

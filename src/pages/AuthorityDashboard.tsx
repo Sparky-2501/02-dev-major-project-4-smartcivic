@@ -7,13 +7,14 @@ import {
 } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { domainLabels, statusLabels } from "@/lib/domainMapping";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables, Database } from "@/integrations/supabase/types";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from "recharts";
+import { getIssuesByDomain, updateIssueStatus } from "@/lib/api";
+
 
 type Issue = Tables<"issues">;
 type IssueStatus = Database["public"]["Enums"]["issue_status"];
@@ -24,34 +25,21 @@ export default function AuthorityDashboard() {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchIssues = async () => {
-    if (!domain) return;
-    const { data } = await supabase
-      .from("issues")
-      .select("*")
-      .eq("domain", domain)
-      .order("created_at", { ascending: false });
-    setIssues(data ?? []);
-    setLoading(false);
-  };
+const fetchIssues = async () => {
+  if (!domain) return;
+  const data = await getIssuesByDomain(domain);
+  setIssues(data || []);
+  setLoading(false);
+};
 
   useEffect(() => {
     fetchIssues();
   }, [domain]);
 
-  const updateStatus = async (issueId: string, newStatus: IssueStatus) => {
-    const { error } = await supabase
-      .from("issues")
-      .update({ status: newStatus })
-      .eq("id", issueId);
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Status updated", description: `Issue marked as ${newStatus.replace("_", " ")}` });
-      fetchIssues();
-    }
-  };
+const updateStatus = async (issueId, newStatus) => {
+  await updateIssueStatus(issueId, newStatus);
+  fetchIssues();
+};
 
   const reported = issues.filter(i => i.status === "reported").length;
   const inProgress = issues.filter(i => i.status === "in_progress").length;

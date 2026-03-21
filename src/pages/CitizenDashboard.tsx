@@ -4,9 +4,9 @@ import { Link } from "react-router-dom";
 import { AlertTriangle, ArrowRight, Clock, CheckCircle, MapPin, ThumbsUp, Tag } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { domainLabels, statusLabels } from "@/lib/domainMapping";
 import type { Tables } from "@/integrations/supabase/types";
+import { getIssuesByUser, getIssues } from "@/lib/api";
 
 type Issue = Tables<"issues">;
 
@@ -17,18 +17,17 @@ export default function CitizenDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
-    const load = async () => {
-      const [mine, community] = await Promise.all([
-        supabase.from("issues").select("*").eq("created_by", user.id).order("created_at", { ascending: false }).limit(5),
-        supabase.from("issues").select("*").order("upvote_count", { ascending: false }).limit(10),
-      ]);
-      setMyIssues(mine.data ?? []);
-      setCommunityIssues(community.data ?? []);
-      setLoading(false);
-    };
-    load();
-  }, [user]);
+  const load = async () => {
+    const mine = await getIssuesByUser(user.id);
+    const community = await getIssues();
+
+    setMyIssues(mine || []);
+    setCommunityIssues(community || []);
+    setLoading(false);
+  };
+
+  if (user) load();
+}, [user]);
 
   const stats = [
     { icon: <AlertTriangle className="w-5 h-5" />, label: "My Reports", value: myIssues.length.toString(), color: "text-primary" },

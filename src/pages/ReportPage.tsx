@@ -4,9 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { Upload, Camera, MapPin, Send, Sparkles, CheckCircle } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { categoryToDomain } from "@/lib/domainMapping";
 import { useToast } from "@/hooks/use-toast";
+import { createIssue } from "@/lib/api";
 
 const categories = ["Pothole", "Garbage Overflow", "Water Leakage", "Broken Streetlight", "Traffic Obstruction", "Stray Animals"];
 
@@ -46,13 +46,12 @@ export default function ReportPage() {
     setSubmitting(true);
     const domain = categoryToDomain[category] || "public_infrastructure";
 
-    const { error } = await supabase.from("issues").insert({
-      title: title.trim(),
-      description: description.trim(),
+    const { error } = await createIssue({
+      title,
+      description,
       category,
       domain,
-      location: location.trim(),
-      created_by: user.id,
+      created_by: user.id
     });
 
     if (error) {
