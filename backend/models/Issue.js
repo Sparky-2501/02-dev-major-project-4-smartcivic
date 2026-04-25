@@ -1,22 +1,54 @@
 import mongoose from "mongoose";
 
 const IssueSchema = new mongoose.Schema({
-  title: String,
-  description: String,
-  category: String,
-  domain: String,
-  location: String,
-  created_by: String,
-
+  title: {
+    type: String,
+    required: true
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  category: {
+    type: String,
+    required: true
+  },
+  domain: {
+    type: String,
+    required: true
+  },
+  location: {
+    type: String
+  },
+  city: {
+    type: String,
+    default: ""
+  },
+  created_by: {
+    type: String
+  },
   status: {
     type: String,
     default: "reported"
   },
-
+  upvote_count: {
+    type: Number,
+    default: 0
+  },
+  upvoted_by: {
+    type: [String],
+    default: []
+  },
+  image_url: {
+    type: String,
+    default: ""
+  },
   created_at: {
     type: Date,
     default: Date.now
   }
 });
 
-export default mongoose.model("Issue", IssueSchema);
+const Issue = mongoose.model("Issue", IssueSchema);
+
+export default Issue;

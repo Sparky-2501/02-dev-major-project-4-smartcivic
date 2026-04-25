@@ -5,7 +5,7 @@ import { AlertTriangle, ArrowRight, Clock, CheckCircle, MapPin, ThumbsUp, Tag } 
 import { GlassCard } from "@/components/GlassCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { domainLabels, statusLabels } from "@/lib/domainMapping";
-import type { Tables } from "@/integrations/supabase/types";
+import { getCityWeather } from "@/lib/weatherApi";
 import { getIssuesByUser, getIssues } from "@/lib/api";
 
 type Issue = Tables<"issues">;
@@ -15,18 +15,21 @@ export default function CitizenDashboard() {
   const [myIssues, setMyIssues] = useState<Issue[]>([]);
   const [communityIssues, setCommunityIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
+const [weatherData, setWeatherData] = useState<any>(null);
 
-  useEffect(() => {
-  const load = async () => {
-    const mine = await getIssuesByUser(user.id);
-    const community = await getIssues();
+useEffect(() => {
+  if (!user?.city) return;
 
-    setMyIssues(mine || []);
-    setCommunityIssues(community || []);
-    setLoading(false);
+  const fetchWeather = async () => {
+    const data = await getCityWeather(user.city);
+    setWeatherData(data);
   };
 
-  if (user) load();
+  fetchWeather();
+
+  const interval = setInterval(fetchWeather, 60 * 60 * 1000);
+
+  return () => clearInterval(interval);
 }, [user]);
 
   const stats = [

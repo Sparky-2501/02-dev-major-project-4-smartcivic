@@ -9,7 +9,6 @@ import { GlassCard } from "@/components/GlassCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { domainLabels, statusLabels } from "@/lib/domainMapping";
 import { useToast } from "@/hooks/use-toast";
-import type { Tables, Database } from "@/integrations/supabase/types";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from "recharts";

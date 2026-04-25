@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
 import { domainLabels, statusLabels } from "@/lib/domainMapping";
-import type { Tables } from "@/integrations/supabase/types";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
   PieChart, Pie

@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ThumbsUp, MessageCircle, MapPin, Clock, Tag, TrendingUp, AlertTriangle } from "lucide-react";
+import { ThumbsUp, MessageCircle, MapPin, Clock, Tag, TrendingUp, AlertTriangle, Globe } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
+import { useAuth } from "@/contexts/AuthContext";
+import { getIssues, getIssuesByCity } from "@/lib/api";
 
 interface Issue {
   id: number;
@@ -55,8 +57,30 @@ const priorityStyles = {
 };
 
 export default function CommunityPage() {
+  const { user } = useAuth();
   const [issues, setIssues] = useState(mockIssues);
   const [activeCategory, setActiveCategory] = useState("All");
+  const [cityOnly, setCityOnly] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchIssues = async () => {
+      setLoading(true);
+      try {
+        const data = cityOnly && user?.city
+          ? await getIssuesByCity(user.city)
+          : await getIssues();
+        if (Array.isArray(data) && data.length > 0) {
+          setIssues(data);
+        }
+      } catch {
+        // keep mock data on error
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchIssues();
+  }, [cityOnly, user?.city]);
 
   const filtered = activeCategory === "All" ? issues : issues.filter((i) => i.category === activeCategory);
 
@@ -71,10 +95,43 @@ export default function CommunityPage() {
   return (
     <div className="min-h-screen bg-grid pt-20 px-4 pb-12">
       <div className="max-w-3xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <h1 className="text-3xl font-bold tracking-tight">Community Issues</h1>
           <p className="text-muted-foreground mt-1">See what your neighbors are reporting</p>
         </motion.div>
+
+        {/* City filter toggle */}
+        {user?.city && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-3 mb-5 p-3 rounded-xl bg-primary/5 border border-primary/20"
+          >
+            <MapPin className="w-4 h-4 text-primary shrink-0" />
+            <p className="text-sm flex-1">
+              Showing issues from{" "}
+              <span className="text-primary font-semibold">{cityOnly ? user.city : "All Cities"}</span>
+            </p>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setCityOnly(true)}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                  cityOnly ? "bg-primary text-white" : "bg-secondary text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <MapPin className="w-3 h-3 inline mr-1" />{user.city}
+              </button>
+              <button
+                onClick={() => setCityOnly(false)}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                  !cityOnly ? "bg-primary text-white" : "bg-secondary text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Globe className="w-3 h-3 inline mr-1" />All Cities
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         {/* Category Filter */}
         <div className="flex gap-2 overflow-x-auto pb-4 mb-6 scrollbar-hide">

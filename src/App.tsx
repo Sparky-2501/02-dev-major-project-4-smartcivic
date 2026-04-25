@@ -1,11 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Navbar } from "@/components/Navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { MagneticCursor } from "@/components/MagneticCursor";
+import { AnimatePresence } from "framer-motion";
 import HomePage from "./pages/HomePage";
 import DashboardPage from "./pages/DashboardPage";
 import ReportPage from "./pages/ReportPage";
@@ -17,6 +19,7 @@ import CitizenDashboard from "./pages/CitizenDashboard";
 import AuthorityDashboard from "./pages/AuthorityDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
+import ProfilePage from "./pages/ProfilePage";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +31,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <div className="dark">
+            <MagneticCursor />
             <Navbar />
             <Routes>
               <Route path="/" element={<HomePage />} />
@@ -56,6 +60,13 @@ const App = () => (
               <Route path="/admin-dashboard" element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <AdminDashboard />
+                </ProtectedRoute>
+              } />
+
+              {/* Profile */}
+              <Route path="/profile" element={
+                <ProtectedRoute allowedRoles={["citizen", "authority", "admin"]}>
+                  <ProfilePage />
                 </ProtectedRoute>
               } />
 

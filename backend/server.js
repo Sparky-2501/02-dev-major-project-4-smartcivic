@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import issueRoutes from "./routes/issues.js";
+import authRoutes from "./routes/auth.js";
+import weatherRoutes from "./routes/weather.js";
 
 dotenv.config();  
 
@@ -12,8 +14,9 @@ connectDB();
 
 app.use(cors());
 app.use(express.json());
-
+app.use("/api/auth", authRoutes);
 app.use("/api/issues", issueRoutes);
+app.use("/api/weather", weatherRoutes);
 
 app.listen(process.env.PORT || 5000, () => {
   console.log("Server running on port 5000");

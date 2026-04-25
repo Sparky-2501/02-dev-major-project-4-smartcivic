@@ -51,7 +51,9 @@ export default function ReportPage() {
       description,
       category,
       domain,
-      created_by: user.id
+      location,
+      city: user.city || "",
+      created_by: user._id
     });
 
     if (error) {

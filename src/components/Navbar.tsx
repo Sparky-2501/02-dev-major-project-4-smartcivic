@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, Menu, X, LogIn, LogOut, User } from "lucide-react";
+import { Activity, Menu, X, LogIn, LogOut, User, UserCircle, MapPin } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -17,12 +17,14 @@ const citizenItems = [
   { label: "Report Issue", path: "/report" },
   { label: "Community", path: "/community" },
   { label: "Map", path: "/map" },
+  { label: "Profile", path: "/profile" },
 ];
 
 const authorityItems = [
   { label: "Home", path: "/" },
   { label: "My Dashboard", path: "/authority-dashboard" },
   { label: "Map", path: "/map" },
+  { label: "Profile", path: "/profile" },
 ];
 
 const adminItems = [
@@ -36,7 +38,8 @@ const adminItems = [
 export function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, role, profile, signOut } = useAuth();
+  
+  const { user, role, profile, signOut, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   let navItems = publicItems;
@@ -89,12 +92,17 @@ export function Navbar() {
             <div className="ml-2 pl-2 border-l border-border/50 flex items-center gap-2">
               {user ? (
                 <>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <User className="w-3 h-3" />
-                    {profile?.name || "User"}
-                    {role && <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-medium ml-1">{role}</span>}
-                  </span>
-                  <button onClick={handleSignOut} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+                  <Link to="/profile" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    <UserCircle className="w-4 h-4" />
+                    <span className="font-medium">{profile?.name?.split(" ")[0] || "User"}</span>
+                    {profile?.city && (
+                      <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-secondary text-[10px]">
+                        <MapPin className="w-2.5 h-2.5" />{profile.city}
+                      </span>
+                    )}
+                    {role && <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-medium">{role}</span>}
+                  </Link>
+                  <button onClick={handleSignOut} className="p-2 text-muted-foreground hover:text-foreground transition-colors" title="Sign Out">
                     <LogOut className="w-4 h-4" />
                   </button>
                 </>

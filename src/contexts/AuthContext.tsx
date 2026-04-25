@@ -1,127 +1,157 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+import { createContext, useContext, useEffect, useState } from "react";
 
-type AppRole = Database["public"]["Enums"]["app_role"];
-type AuthorityDomain = Database["public"]["Enums"]["authority_domain"];
+export type UserRole = "citizen" | "authority" | "admin";
 
-interface AuthContextType {
-  session: Session | null;
+export type User = {
+  _id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  city?: string;
+  role: UserRole;
+  domain?: string;
+  avatar?: string;
+  bio?: string;
+};
+
+type SignupData = {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  city?: string;
+  role?: "citizen" | "authority";
+  domain?: string;
+};
+
+type UpdateProfileData = {
+  name: string;
+  phone: string;
+  city: string;
+  bio?: string;
+  avatar?: string;
+};
+
+type AuthContextType = {
   user: User | null;
-  role: AppRole | null;
-  domain: AuthorityDomain | null;
-  profile: { name: string; email: string } | null;
-  loading: boolean;
-  signUp: (email: string, password: string, name: string, role: "citizen" | "authority", domain?: AuthorityDomain) => Promise<{ error: string | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signOut: () => Promise<void>;
-}
+  token: string | null;
+  login: (email: string, password: string) => Promise<User | null>;
+  signup: (data: SignupData) => Promise<boolean>;
+  logout: () => void;
+  updateProfile: (data: UpdateProfileData) => Promise<boolean>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ ok: boolean; message: string }>;
+  // legacy compat
+  role?: UserRole | null;
+  profile?: User | null;
+  signOut?: () => void;
+};
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType);
+const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+const API = "http://localhost:5000/api";
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<AppRole | null>(null);
-  const [domain, setDomain] = useState<AuthorityDomain | null>(null);
-  const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchUserData = async (userId: string) => {
-    const [roleRes, profileRes] = await Promise.all([
-      supabase.from("user_roles").select("role, domain").eq("user_id", userId).maybeSingle(),
-      supabase.from("profiles").select("name, email").eq("user_id", userId).maybeSingle(),
-    ]);
-
-    if (roleRes.data) {
-      setRole(roleRes.data.role);
-      setDomain(roleRes.data.domain);
-    }
-    if (profileRes.data) {
-      setProfile(profileRes.data);
-    }
-  };
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        setTimeout(() => fetchUserData(session.user.id), 0);
-      } else {
-        setRole(null);
-        setDomain(null);
-        setProfile(null);
+    const savedToken = localStorage.getItem("sc_token");
+    const savedUser = localStorage.getItem("sc_user");
+    if (savedToken && savedUser) {
+      try {
+        setToken(savedToken);
+        setUser(JSON.parse(savedUser));
+      } catch (_) {
+        localStorage.removeItem("sc_token");
+        localStorage.removeItem("sc_user");
       }
-      setLoading(false);
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserData(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    }
   }, []);
 
-  const signUp = async (
-    email: string,
-    password: string,
-    name: string,
-    selectedRole: "citizen" | "authority",
-    selectedDomain?: AuthorityDomain
-  ) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name },
-        emailRedirectTo: window.location.origin,
+  const login = async (email: string, password: string): Promise<User | null> => {
+    const res = await fetch(`${API}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    localStorage.setItem("sc_token", data.token);
+    localStorage.setItem("sc_user", JSON.stringify(data.user));
+    setToken(data.token);
+    setUser(data.user);
+    return data.user;
+  };
+
+  const signup = async (formData: SignupData): Promise<boolean> => {
+    const res = await fetch(`${API}/auth/signup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData)
+    });
+    return res.ok;
+  };
+
+  const logout = () => {
+    localStorage.removeItem("sc_token");
+    localStorage.removeItem("sc_user");
+    setToken(null);
+    setUser(null);
+  };
+
+  const updateProfile = async (data: UpdateProfileData): Promise<boolean> => {
+    if (!user) return false;
+    const res = await fetch(`${API}/auth/profile/${user._id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
       },
+      body: JSON.stringify(data)
     });
-
-    if (error) return { error: error.message };
-    if (!data.user) return { error: "Signup failed" };
-
-    // Insert role
-    const { error: roleError } = await supabase.from("user_roles").insert({
-      user_id: data.user.id,
-      role: selectedRole,
-      domain: selectedRole === "authority" ? selectedDomain : null,
-    });
-
-    if (roleError) return { error: roleError.message };
-
-    setRole(selectedRole);
-    setDomain(selectedRole === "authority" ? selectedDomain ?? null : null);
-
-    return { error: null };
+    if (!res.ok) return false;
+    const result = await res.json();
+    const updatedUser = { ...user, ...result.user };
+    localStorage.setItem("sc_user", JSON.stringify(updatedUser));
+    setUser(updatedUser);
+    return true;
   };
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-    return { error: null };
-  };
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    setRole(null);
-    setDomain(null);
-    setProfile(null);
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    if (!user) return { ok: false, message: "Not logged in" };
+    const res = await fetch(`${API}/auth/change-password/${user._id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+    const data = await res.json();
+    return { ok: res.ok, message: data.message };
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, role, domain, profile, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{
+      user,
+      token,
+      login,
+      signup,
+      logout,
+      updateProfile,
+      changePassword,
+      // legacy compat aliases
+      role: user?.role ?? null,
+      profile: user,
+      signOut: logout
+    }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used inside AuthProvider");
+  return context;
+};
