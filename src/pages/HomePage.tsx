@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView, useMotionValue, useSpring } from "framer-motion";
 import { Link } from "react-router-dom";
+import { useScroll, useTransform } from "framer-motion";
 import {
   Thermometer, Wind, Car, Droplets, Zap, Activity,
   AlertTriangle, ArrowRight, ChevronRight, Shield, MapPin
@@ -77,11 +78,11 @@ const stats = [
 ];
 
 const colorMap: Record<string, { icon: string; ring: string; glow: string; badge: string }> = {
-  amber:  { icon: "text-amber-400",  ring: "ring-amber-400/20",  glow: "rgba(251,191,36,0.2)",   badge: "bg-amber-400/10 text-amber-400" },
-  green:  { icon: "text-emerald-400",ring: "ring-emerald-400/20",glow: "rgba(52,211,153,0.2)",   badge: "bg-emerald-400/10 text-emerald-400" },
-  blue:   { icon: "text-blue-400",   ring: "ring-blue-400/20",   glow: "rgba(96,165,250,0.2)",   badge: "bg-blue-400/10 text-blue-400" },
-  purple: { icon: "text-violet-400", ring: "ring-violet-400/20", glow: "rgba(167,139,250,0.2)",  badge: "bg-violet-400/10 text-violet-400" },
-  red:    { icon: "text-red-400",    ring: "ring-red-400/20",    glow: "rgba(248,113,113,0.2)",   badge: "bg-red-400/10 text-red-400" },
+  amber: { icon: "text-amber-400", ring: "ring-amber-400/20", glow: "rgba(251,191,36,0.2)", badge: "bg-amber-400/10 text-amber-400" },
+  green: { icon: "text-emerald-400", ring: "ring-emerald-400/20", glow: "rgba(52,211,153,0.2)", badge: "bg-emerald-400/10 text-emerald-400" },
+  blue: { icon: "text-blue-400", ring: "ring-blue-400/20", glow: "rgba(96,165,250,0.2)", badge: "bg-blue-400/10 text-blue-400" },
+  purple: { icon: "text-violet-400", ring: "ring-violet-400/20", glow: "rgba(167,139,250,0.2)", badge: "bg-violet-400/10 text-violet-400" },
+  red: { icon: "text-red-400", ring: "ring-red-400/20", glow: "rgba(248,113,113,0.2)", badge: "bg-red-400/10 text-red-400" },
 };
 
 // ─── Animated stat card ───────────────────────────────────────────────────────
@@ -146,6 +147,17 @@ const features = [
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function HomePage() {
+  const howRef = useRef(null);
+
+  const { scrollYProgress: howProgress } = useScroll({
+    target: howRef,
+    offset: ["start 80%", "center center"],
+  });
+
+  const howScale = useTransform(howProgress, [0, 1], [0.9, 1]);
+  const howBlur = useTransform(howProgress, [0, 1], ["8px", "0px"]);
+  const howOpacity = useTransform(howProgress, [0, 1], [0, 1]);
+  const howY = useTransform(howProgress, [0, 1], [120, 0]);
   // Parallax orbs follow cursor slightly
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -153,6 +165,23 @@ export default function HomePage() {
   const orb1Y = useSpring(mouseY, { damping: 60, stiffness: 80 });
   const orb2X = useSpring(mouseX, { damping: 80, stiffness: 50 });
   const orb2Y = useSpring(mouseY, { damping: 80, stiffness: 50 });
+
+  const { scrollYProgress } = useScroll();
+
+  // Transformations
+  const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.3]);
+  const blur = useTransform(scrollYProgress, [0, 0.5], ["0px", "16px"]);
+  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0.4]);
+  const y = useTransform(scrollYProgress, [0, 0.5], [0, -100]);
+  const origin = useTransform(scrollYProgress, [0, 0.5], ["50% 0%", "50% 50%"]);
+
+  const sectionScale = useTransform(scrollYProgress, [0, 0.5], [0.85, 1]);
+  const sectionBlur = useTransform(scrollYProgress, [0, 0.5], ["10px", "0px"]);
+  const sectionOpacity = useTransform(scrollYProgress, [0, 0.5], [0, 1]);
+  const sectionY = useTransform(scrollYProgress, [0, 0.5], [120, 0]);
+
+  const bgX = useTransform(orb1X, (v) => v * -0.8);
+  const bgY = useTransform(orb1Y, (v) => v * -0.8);
 
   useEffect(() => {
     const move = (e: MouseEvent) => {
@@ -169,10 +198,31 @@ export default function HomePage() {
     <div className="min-h-screen bg-grid overflow-hidden">
 
       {/* ── HERO ────────────────────────────────────────────────────────────── */}
-      <section className="relative pt-32 pb-24 px-4 overflow-hidden">
-
+      <motion.section
+        style={{ scale, filter: blur, opacity, y }}
+        className="relative pt-32 pb-24 px-4 overflow-hidden"
+      >
         {/* Animated background orbs */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
+
+          <motion.div
+            className="absolute inset-0 z-0"
+            style={{
+              backgroundImage: "url('/city.jpg')",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              opacity: 0.5,
+              filter: "blur(3px)",
+              x: bgX,
+              y: bgY,
+              WebkitMaskImage:
+                "radial-gradient(circle at center, rgba(0,0,0,1) 35%, rgba(0,0,0,0.6) 55%, rgba(0,0,0,0) 80%)",
+              maskImage:
+                "radial-gradient(circle at center, rgba(0,0,0,1) 35%, rgba(0,0,0,0.6) 55%, rgba(0,0,0,0) 80%)",
+            }}
+          />
+
+          <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/40 via-black/20 to-black/60" />
           <motion.div
             className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/8 rounded-full blur-[130px] animate-orb"
             style={{ x: orb1X, y: orb1Y }}
@@ -260,10 +310,18 @@ export default function HomePage() {
             <span className="text-xs tracking-widest uppercase">Scroll</span>
           </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       {/* ── LIVE STATS ─────────────────────────────────────────────────────── */}
-      <section className="px-4 pb-24">
+      <motion.section
+        style={{
+          scale: sectionScale,
+          filter: sectionBlur,
+          opacity: sectionOpacity,
+          y: sectionY,
+        }}
+        className="px-4 pb-24"
+      >
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -282,10 +340,19 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* ── HOW IT WORKS ────────────────────────────────────────────────────── */}
-      <section className="px-4 pb-32 relative">
+      <motion.section
+        ref={howRef}
+        style={{
+          scale: howScale,
+          filter: howBlur,
+          opacity: howOpacity,
+          y: howY,
+        }}
+        className="px-4 pb-32 relative mt-32"
+      >
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -358,10 +425,19 @@ export default function HomePage() {
             </motion.div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* ── CITY STATS STRIP ─────────────────────────────────────────────────── */}
-      <section className="border-t border-white/5 py-12 px-4 relative overflow-hidden">
+      <motion.section
+        initial={{ opacity: 1, scale: 1, y: 0 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="border-t border-white/5 py-12 px-4 relative overflow-hidden"
+        style={{
+          transform: "none",
+          filter: "none",
+          opacity: 1,
+        }}
+      >
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
@@ -385,7 +461,7 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
     </div>
   );
 }

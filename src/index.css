@@ -51,12 +51,16 @@
 
   html {
     scroll-behavior: smooth;
+    scroll-padding-top: 4rem;
+    /* Momentum scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
     overflow-x: hidden;
+    overscroll-behavior-y: contain;
   }
 
   /* Custom scrollbar */
@@ -234,13 +238,18 @@
   100% { transform: translate(var(--dx, 60px), var(--dy, -80px)) scale(0); opacity: 0; }
 }
 
-/* Page-wide smooth transitions */
+/* Page-wide smooth transitions (used by AnimatePresence in App.tsx) */
 .page-enter {
-  animation: page-in 0.6s cubic-bezier(0.22,1,0.36,1) forwards;
+  animation: page-in 0.45s cubic-bezier(0.22,1,0.36,1) forwards;
 }
 @keyframes page-in {
-  from { opacity: 0; transform: translateY(24px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(20px) scale(0.99); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Framer Motion page wrapper — ensure no overflow clipping during transitions */
+[data-framer-page] {
+  will-change: opacity, transform;
 }
 
 /* Hero text word reveal */
