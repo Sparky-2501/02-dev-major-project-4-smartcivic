@@ -40,7 +40,7 @@ app.use("/api/weather", weatherRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "ok", time: new Date().toISOString() }));
-app.get("*", (req, res) => {
+app.get("/*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
