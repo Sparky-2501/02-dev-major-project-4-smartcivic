@@ -5,6 +5,7 @@ import connectDB from "./config/db.js";
 import issueRoutes from "./routes/issues.js";
 import authRoutes from "./routes/auth.js";
 import weatherRoutes from "./routes/weather.js";
+const path = require("path"); 
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
+app.use(express.static(path.join(__dirname, "public")));
 // Increase limit for base64 image payloads
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
@@ -35,9 +37,13 @@ app.use("/api/weather", weatherRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "ok", time: new Date().toISOString() }));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 app.listen(process.env.PORT || 5000, () => {
   console.log(`✅ Server running on port ${process.env.PORT || 5000}`);
   console.log(`📦 Mongo URI: ${process.env.MONGO_URI ? "Connected" : "MISSING!"}`);
   console.log(`🔑 JWT Secret: ${process.env.JWT_SECRET ? "Set" : "MISSING!"}`);
-});
+});
+
